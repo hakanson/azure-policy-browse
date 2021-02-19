@@ -1,0 +1,28 @@
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        path: azure-policy-browse
+
+    - name: Checkout Azure Policy repo
+      uses: actions/checkout@v2
+      with:
+        repository: Azure/azure-policy
+      path: azure-policy
+      
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '14'  
+
+    - run: |
+      cd azure-policy-browse
+      node index.js
+      git config user.name "Kevin Hakanson"
+      git config user.email "kevin.hakanson@gmail.com"
+      git add .
+      git commit -m "generated markdown"
+      git push
