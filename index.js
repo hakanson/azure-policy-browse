@@ -38,12 +38,18 @@ let policyDefinitionIdsMD = {};
 policySetDefinitionIdsMD = {}
 
 let mdBody = '';
+let mdBody2 = '';
 let mdToc = '';
+let mdFilename = '';
 
 let policyDir = '../azure-policy/built-in-policies/policyDefinitions';
 let policyBase = 'https://github.com/Azure/azure-policy/tree/master/built-in-policies/policyDefinitions';
 let policySetDir = '../azure-policy/built-in-policies/policySetDefinitions';
 let policySetBase = 'https://github.com/Azure/azure-policy/tree/master/built-in-policies/policySetDefinitions';
+let subdir = 'policyDefinitionsByService';
+if (!fs.existsSync(subdir)){
+    fs.mkdirSync(subdir);
+}
 
 // loop through all directories
 
@@ -51,6 +57,7 @@ const getdirnames = p => fs.readdirSync(p).filter(f => fs.statSync(path.join(p, 
 
 let dirs = getdirnames(policySetDir);
 dirs.forEach(function (item, index) {
+
     if (item != "Azure Government") {
         let files = fs.readdirSync(path.join(policySetDir,item));
         files.forEach(function (file) {
@@ -79,8 +86,11 @@ dirs.forEach(function (item, index) {
 dirs = getdirnames(policyDir);
 dirs.forEach(function (item, index) {
     console.log(item, index);
-    mdBody += `\n### ${item}\n\n`;
+    mdFilename = `policyDefinitions-${item.replace(/\s+/g, '')}.md`;
+    mdBody += `\n### ${item}\n[(details)](${subdir}/${mdFilename})\n\n`;
     mdToc += `* [${item}](#${item.replace(/\s+/g, '-').toLowerCase()}) \n`
+    mdBody2 = `# Azure Policy Definitions - ${item}\n\n`;
+    
 
     let files = fs.readdirSync(path.join(policyDir,item));
     files.forEach(function (file) {
@@ -93,16 +103,19 @@ dirs.forEach(function (item, index) {
                 //console.log(name);
                 let policyMD = `* [${name}](${policyBase}/${encodeURIComponent(item)}/${file})  \n`;
                 mdBody += policyMD;
-                mdBody += `  ${policyData.properties.description} \n`;
+                mdBody2 += policyMD;
+                mdBody2 += `  ${policyData.properties.description} \n`;
                 let resourceTypes = new Set(findResourceTypes(policyData.properties.policyRule.if || {}));
                 policyDefinitionIdsMD[policyData.id] = policyMD;
                 if (resourceTypes.size == 0) {
                     rulesByResourceType['*'].push(policyMD);
                 } else {
                     mdBody += `  * Resource Types \n`;
+                    mdBody2 += `  * Resource Types \n`;
                 }
                 resourceTypes.forEach(t => {
                     mdBody += `    * \`${t}\` \n`;
+                    mdBody2 += `    * \`${t}\` \n`;
     
                     if (!rulesByResourceType[t]) {
                         rulesByResourceType[t] = [policyMD];
@@ -112,8 +125,10 @@ dirs.forEach(function (item, index) {
                 });
                 if (policySetDefinitionIdsMD[policyData.id]) {
                     mdBody += `  * Policy Set Definitions (${policySetDefinitionIdsMD[policyData.id].length})  \n`;
+                    mdBody2 += `  * Policy Set Definitions (${policySetDefinitionIdsMD[policyData.id].length})  \n`;
                     policySetDefinitionIdsMD[policyData.id].forEach(ps => {
                         mdBody += ('    ' + ps);
+                        mdBody2 += ('    ' + ps);
                     });
                 }                
             } catch (error) {
@@ -122,7 +137,9 @@ dirs.forEach(function (item, index) {
 
         }
     });
-    
+
+
+    fs.writeFileSync(subdir + path.sep + mdFilename, mdBody2);
 });
 
 
